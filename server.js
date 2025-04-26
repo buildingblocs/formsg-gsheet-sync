@@ -85,7 +85,7 @@ app.post(
         ...decrypted,
       }
 
-      console.error(decrypted)
+      // console.error(decrypted)
 
       await appendToSheet(sheetId, sheetName, submission)
 
