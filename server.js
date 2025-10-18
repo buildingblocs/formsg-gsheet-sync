@@ -103,7 +103,6 @@ app.post('/add', async (req, res) => {
             })
         }
 
-        // Generate next numeric id if not provided
         if (!id) {
             const numericKeys = Object.keys(configStore)
                 .map((k) => Number(k))
@@ -117,18 +116,14 @@ app.post('/add', async (req, res) => {
             }
         }
 
-        // Minimal validation
         const item = { formSecretKey: String(formSecretKey), sheetId: String(sheetId), sheetName: String(sheetName) }
 
-        // Update in-memory store first (server picks this up immediately)
         configStore[id] = item
 
-        // Persist to disk for future restarts
         try {
             await saveConfig(configStore)
         } catch (e) {
             console.error('[CONFIG] Failed to persist config.js:', e)
-            // Roll back in-memory on failure to persist
             delete configStore[id]
             return res.status(500).json({ message: 'Failed to persist config' })
         }
@@ -138,6 +133,21 @@ app.post('/add', async (req, res) => {
         console.error('Add error:', err)
         return res.status(500).json({ message: 'Server error' })
     }
+})
+
+app.get('/:sheetId', (req, res) => {
+    const { sheetId } = req.params
+
+    const entry = Object.entries(configStore).find(([, cfg]) => cfg && String(cfg.sheetId) === String(sheetId))
+
+    if (!entry) {
+        return res.status(404).send({ message: 'Sheet ID not configured' })
+    }
+
+    const [id] = entry
+    const idResponse = /^\d+$/.test(id) ? Number(id) : id
+
+    return res.status(200).json({ id: idResponse })
 })
 
 app.post(
